@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#bc002d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-title" content="Nihongo Go">
+<title>Nihongo Go</title>
+<style>
+:root{
+  --bg:#faf7f2;--card:#ffffff;--ink:#1d1b19;--mute:#6f6a63;--line:#e7e1d8;
+  --red:#bc002d;--red-soft:#fbe9ec;--ok:#1f7a4d;--ok-soft:#e3f3ea;
+  --warn:#a35f00;--warn-soft:#fdf1dc;--bad:#c0392b;--bad-soft:#fbe7e4;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.06);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#141312;--card:#1f1d1b;--ink:#f1ede6;--mute:#a39d94;--line:#34302c;
+    --red:#ff4d6d;--red-soft:#3a1a21;--ok:#4fc489;--ok-soft:#173226;
+    --warn:#f0a63a;--warn-soft:#3a2b12;--bad:#ff6b5b;--bad-soft:#3d1a16;
+    --shadow:none;color-scheme:dark;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP",sans-serif;min-height:100vh;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.jp{font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic","Meiryo",sans-serif}
+[hidden]{display:none!important}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+header h1{font-size:18px;margin:0;flex:1;display:flex;align-items:center;gap:8px;letter-spacing:-.01em}
+.sun{width:14px;height:14px;border-radius:50%;background:var(--red);flex:none}
+.hbtn{padding:6px 10px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--mute)}
+.hbtn.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+
+main{max-width:560px;margin:0 auto;padding:14px 16px 24px}
+.view[hidden]{display:none}
+
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none;margin:0 -16px;padding-left:16px;padding-right:16px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:14px;color:var(--mute);white-space:nowrap}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+.search{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;margin-bottom:10px}
+.legend{font-size:13px;color:var(--mute);margin:0 0 12px}
+
+h2.cat{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin:18px 0 8px}
+.list{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.row{display:grid;grid-template-columns:1fr 1.25fr auto;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 14px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row:active{background:var(--red-soft)}
+.row .en{font-size:15px}
+.row .ro{font-weight:650;font-size:16px}
+.row .kn{font-size:13px;color:var(--mute);margin-top:2px}
+.row .nt{font-size:12px;color:var(--mute);margin-top:3px;font-style:italic}
+.spk{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--red);background:var(--red-soft);flex:none}
+.spk svg{width:18px;height:18px}
+
+/* Flashcards */
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px;text-align:center}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:12px;color:var(--mute)}
+.scene{perspective:1200px}
+.fcard{position:relative;height:320px;transition:transform .45s cubic-bezier(.3,.7,.3,1);transform-style:preserve-3d;cursor:pointer}
+.fcard.noanim{transition:none}
+.fcard.flipped{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;gap:10px}
+.face.back{transform:rotateY(180deg)}
+.tag{position:absolute;top:14px;left:16px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+.big{font-size:30px;font-weight:700;line-height:1.2;letter-spacing:-.01em}
+.mid{font-size:18px;color:var(--mute)}
+.kana{font-size:22px}
+.hint{position:absolute;bottom:14px;font-size:12px;color:var(--mute)}
+.note{font-size:13px;color:var(--mute);font-style:italic;max-width:30ch}
+.spk.lg{width:52px;height:52px}
+.spk.lg svg{width:24px;height:24px}
+.rate{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.rbtn{padding:12px 6px;border-radius:14px;border:1px solid;font-weight:650;font-size:15px;line-height:1.2}
+.rbtn small{display:block;font-weight:400;font-size:12px;opacity:.85;margin-top:3px}
+.r-again{color:var(--bad);background:var(--bad-soft);border-color:transparent}
+.r-hard{color:var(--warn);background:var(--warn-soft);border-color:transparent}
+.r-good{color:var(--ok);background:var(--ok-soft);border-color:transparent}
+.flip-hint{text-align:center;color:var(--mute);font-size:14px;margin-top:16px}
+.empty{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:32px 20px;text-align:center}
+.empty h3{margin:0 0 6px;font-size:20px}
+.empty p{color:var(--mute);margin:0 0 16px}
+.btn{display:inline-block;padding:12px 18px;border-radius:14px;background:var(--red);color:#fff;font-weight:650}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.block{display:block;width:100%}
+.linkbtn{color:var(--mute);font-size:13px;text-decoration:underline;padding:8px}
+.center{text-align:center}
+
+/* Quiz */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px 18px;box-shadow:var(--shadow)}
+.progress{height:6px;border-radius:6px;background:var(--line);overflow:hidden;margin-bottom:14px}
+.progress i{display:block;height:100%;background:var(--red);transition:width .3s}
+.qmeta{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);margin-bottom:6px}
+.qask{font-size:14px;color:var(--mute);margin:0 0 6px}
+.qprompt{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.qprompt .big{font-size:26px}
+.opts{display:grid;gap:10px}
+.opt{text-align:left;padding:13px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg)}
+.opt .kn{display:block;font-size:13px;color:var(--mute);margin-top:2px}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt:disabled{cursor:default}
+.feedback{margin:14px 0 0;font-weight:650}
+.feedback.good{color:var(--ok)}.feedback.bad{color:var(--bad)}
+.score{font-size:54px;font-weight:800;color:var(--red);margin:4px 0}
+.miss{text-align:left;margin-top:16px}
+.miss .row{grid-template-columns:1fr 1.25fr auto}
+
+/* Tabs */
+/* Talk */
+.scen{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
+.scen .num{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--red-soft);color:var(--red);font-weight:700;flex:none}
+.scen.done .num{background:var(--ok-soft);color:var(--ok)}
+.scen b{display:block}
+.scen span{font-size:13px;color:var(--mute)}
+.talkhead{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.talkhead h3{margin:0;font-size:17px;flex:1}
+.chat{display:flex;flex-direction:column;gap:10px;margin:10px 0 14px}
+.bub{max-width:86%;padding:10px 12px;border-radius:16px;line-height:1.35}
+.bub .who{font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.7;margin-bottom:2px}
+.bub.staff{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px;display:flex;gap:10px;align-items:flex-start}
+.bub.staff .ro{font-weight:650;font-size:17px}
+.bub .kn{font-size:13px;color:var(--mute)}
+.bub .en{font-size:13px;color:var(--mute);font-style:italic;margin-top:2px}
+.bub.me{align-self:flex-end;background:var(--red);color:#fff;border-bottom-right-radius:4px}
+.bub.me .kn,.bub.me .en{color:rgba(255,255,255,.85)}
+.bub.me.revealed{background:var(--mute)}
+.bub.sys{align-self:center;font-size:13px;color:var(--mute);text-align:center;max-width:100%}
+.taskbox{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.taskbox .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--red);font-weight:700}
+.taskbox .tk{font-size:16px;margin:4px 0 10px}
+.answer{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:17px}
+.answer:focus{outline:none;border-color:var(--red)}
+.answer.shake{animation:shake .3s;border-color:var(--bad)}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.tbtns{display:flex;gap:8px;margin-top:10px}
+.tbtns .btn{flex:1;text-align:center;padding:11px 8px}
+.tfb{font-size:14px;margin:10px 0 0}
+.tfb.bad{color:var(--bad)}.tfb.hint{color:var(--warn)}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;font-size:12px;color:var(--mute);border-radius:12px}
+.tab svg{width:24px;height:24px}
+.tab.on{color:var(--red)}
+
+/* Sheet */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px));max-height:85vh;overflow:auto}
+.sheet h3{margin:0 0 12px}
+.sheet p{color:var(--mute);font-size:14px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:6px 0 16px}
+.seg button{padding:10px 4px;font-size:14px;border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.label{font-size:13px;font-weight:650;margin-top:8px}
+
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:20;max-width:90vw;text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="sun"></span>Nihongo Go</h1>
+  <button class="hbtn" id="voiceBadge" hidden>No JP voice</button>
+  <button class="hbtn" id="settingsBtn" aria-label="Settings">Settings</button>
+</header>
+
+<main>
+  <!-- LEARN -->
+  <section class="view" id="v-learn">
+    <input class="search" id="search" type="search" placeholder="Search English or romaji…" autocomplete="off">
+    <div class="chips" id="learnChips"></div>
+    <p class="legend">Tap any row to hear it. A line over a vowel (ō, ū, ī) means hold it twice as long.</p>
+    <div id="learnList"></div>
+  </section>
+
+  <!-- FLASHCARDS -->
+  <section class="view" id="v-flash" hidden>
+    <div class="chips" id="flashChips"></div>
+    <div class="stats">
+      <div class="stat"><b id="stDue">0</b><span>Due</span></div>
+      <div class="stat"><b id="stNew">0</b><span>New</span></div>
+      <div class="stat"><b id="stLearn">0</b><span>Learning</span></div>
+    </div>
+    <div id="flashArea">
+      <div class="scene">
+        <div class="fcard" id="fcard">
+          <div class="face front">
+            <span class="tag">Romaji</span>
+            <div class="big" id="fRo"></div>
+            <button class="spk lg" id="fSpk1" aria-label="Play audio"></button>
+            <span class="hint">Tap card to flip</span>
+          </div>
+          <div class="face back">
+            <span class="tag">English</span>
+            <div class="big" id="fEn"></div>
+            <div class="mid" id="fRo2"></div>
+            <div class="kana jp" id="fKn"></div>
+            <div class="note" id="fNt"></div>
+            <button class="spk lg" id="fSpk2" aria-label="Play audio"></button>
+          </div>
+        </div>
+      </div>
+      <div class="rate" id="rateRow" hidden>
+        <button class="rbtn r-again" data-r="again">Again<small>&lt; 1 min</small></button>
+        <button class="rbtn r-hard" data-r="hard">Not quite<small>&lt; 5 min</small></button>
+        <button class="rbtn r-good" data-r="good">Got it<small id="goodLbl">Later</small></button>
+      </div>
+      <p class="flip-hint" id="flipHint">Say it out loud, then tap the card to check.</p>
+    </div>
+    <div class="empty" id="flashEmpty" hidden>
+      <h3>All caught up</h3>
+      <p id="emptyMsg"></p>
+      <button class="btn" id="aheadBtn">Keep studying anyway</button>
+    </div>
+    <div class="center"><button class="linkbtn" id="resetDeck">Reset progress for this deck</button></div>
+  </section>
+
+  <!-- TALK -->
+  <section class="view" id="v-talk" hidden>
+    <div id="talkList">
+      <p class="legend">Real-life mini conversations. Read (or listen to) what's said, then type your reply in romaji. Spaces, capitals and long-vowel marks don't matter.</p>
+      <div id="scenList"></div>
+    </div>
+    <div id="talkRun" hidden>
+      <div class="talkhead">
+        <button class="hbtn" id="talkBack">‹ Back</button>
+        <h3 id="talkTitle"></h3>
+        <span class="legend" style="margin:0" id="talkStep"></span>
+      </div>
+      <div class="chat" id="chat"></div>
+      <div class="taskbox" id="taskBox">
+        <div class="lbl">Your turn</div>
+        <div class="tk" id="taskTxt"></div>
+        <input class="answer" id="answer" type="text" placeholder="Type in romaji…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send">
+        <p class="tfb" id="tFb" hidden></p>
+        <div class="tbtns">
+          <button class="btn ghost" id="tHint">Hint</button>
+          <button class="btn ghost" id="tReveal">Show answer</button>
+          <button class="btn" id="tCheck">Check</button>
+        </div>
+      </div>
+      <div class="taskbox center" id="talkDone" hidden>
+        <h3 style="margin:0 0 6px">Otsukaresama! (Well done!)</h3>
+        <p class="legend" id="talkDoneMsg"></p>
+        <div class="tbtns">
+          <button class="btn ghost" id="talkRestart">Do it again</button>
+          <button class="btn" id="talkNext">Next scenario</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section class="view" id="v-quiz" hidden>
+    <div id="quizStart">
+      <div class="chips" id="quizChips"></div>
+      <div class="panel center">
+        <h3 style="margin:0 0 6px">Quick test</h3>
+        <p style="color:var(--mute);margin:0 0 18px">10 multiple-choice questions. Some show romaji, some show English — pick the matching answer.</p>
+        <button class="btn block" id="quizGo">Start quiz</button>
+      </div>
+    </div>
+    <div id="quizRun" hidden>
+      <div class="progress"><i id="qBar"></i></div>
+      <div class="panel">
+        <div class="qmeta"><span id="qNum"></span><span id="qScore"></span></div>
+        <p class="qask" id="qAsk"></p>
+        <div class="qprompt">
+          <div style="flex:1">
+            <div class="big" id="qPrompt"></div>
+            <div class="kn jp" id="qKana" style="color:var(--mute);margin-top:4px"></div>
+          </div>
+          <button class="spk lg" id="qSpk" aria-label="Play audio"></button>
+        </div>
+        <div class="opts" id="qOpts"></div>
+        <p class="feedback" id="qFb" hidden></p>
+        <button class="btn block" id="qNext" style="margin-top:14px" hidden>Next</button>
+      </div>
+    </div>
+    <div id="quizDone" hidden>
+      <div class="panel center">
+        <div style="color:var(--mute)">Your score</div>
+        <div class="score" id="qFinal"></div>
+        <p id="qVerdict" style="margin:0 0 16px"></p>
+        <button class="btn block" id="qAgain">Try another quiz</button>
+        <div class="miss" id="qMiss"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button class="tab on" data-v="learn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/><path d="M8 7h7M8 11h5"/></svg>Learn</button>
+  <button class="tab" data-v="flash">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="14" height="14" rx="2"/><path d="M7 3h12a2 2 0 0 1 2 2v12"/></svg>Cards</button>
+  <button class="tab" data-v="talk">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/></svg>Talk</button>
+  <button class="tab" data-v="quiz">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>Quiz</button>
+</nav>
+
+<div class="overlay" id="settings" hidden>
+  <div class="sheet">
+    <h3>Settings</h3>
+    <div class="label">Audio speed</div>
+    <div class="seg" id="speedSeg">
+      <button data-rate="0.6">Slow</button>
+      <button data-rate="0.85">Relaxed</button>
+      <button data-rate="1">Natural</button>
+    </div>
+    <div class="label">Voice</div>
+    <p id="voiceInfo"></p>
+    <button class="btn ghost" id="testVoice">Test: こんにちは</button>
+    <div class="label" style="margin-top:18px">About audio offline</div>
+    <p>Audio uses your phone's built-in Japanese text-to-speech voice, so it works in airplane mode once a Japanese voice is on the device.<br><br>
+    <b>iPhone:</b> Settings → Accessibility → Spoken Content → Voices → Japanese → download a voice (e.g. Kyoko).<br>
+    <b>Android:</b> Settings → System → Languages → Text-to-speech → Google engine → Install voice data → Japanese.<br>
+    <b>Mac:</b> System Settings → Accessibility → Spoken Content → System voice → Manage Voices… → Japanese → download Kyoko, then reload this page.</p>
+    <button class="linkbtn" id="resetAll">Reset all flashcard progress</button>
+    <button class="btn block" id="closeSettings" style="margin-top:10px">Done</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------- DATA ----------
+ r = romaji, k = kana (display), e = English, c = category,
+ say = text sent to the speech engine (if different from kana), n = note,
+ conf = items sharing a value are never used as distractors for each other */
+const CATS = ['Basics','Getting around','Food & shopping','Numbers'];
+const RAW = [
+ // Basics
+ {r:"Kon'nichiwa", k:"こんにちは", e:"Hello", c:0},
+ {r:"Ohayō gozaimasu", k:"おはよう ございます", e:"Good morning", c:0},
+ {r:"Konbanwa", k:"こんばんは", e:"Good evening", c:0},
+ {r:"Sayōnara", k:"さようなら", e:"Goodbye", c:0, conf:"bye"},
+ {r:"Ja ne", k:"じゃ ね", e:"Bye! / See you! (casual)", c:0, conf:"bye"},
+ {r:"Genki desu ka?", k:"げんき です か", say:"元気ですか", e:"How are you?", c:0, conf:"genki"},
+ {r:"Genki desu", k:"げんき です", say:"元気です", e:"I'm fine", c:0, conf:"genki"},
+ {r:"Mō ichido onegaishimasu", k:"もう いちど おねがいします", say:"もう一度お願いします", e:"One more time, please", c:0, n:"“Mō ichido” alone also works"},
+ {r:"Kekkō desu", k:"けっこう です", say:"結構です", e:"No, thank you", c:0, conf:"no"},
+ {r:"Yoroshiku", k:"よろしく", e:"Nice to meet you!", c:0},
+ {r:"Arigatō gozaimasu", k:"ありがとう ございます", e:"Thank you", c:0},
+ {r:"Kudasai", k:"ください", e:"Please (when asking for something)", c:0},
+ {r:"Hai", k:"はい", e:"Yes", c:0},
+ {r:"Iie", k:"いいえ", e:"No", c:0, conf:"no"},
+ {r:"Sumimasen", k:"すみません", e:"Excuse me / Sorry", c:0, n:"Also used to call a waiter", conf:"sorry"},
+ {r:"Gomen nasai", k:"ごめんなさい", e:"I'm sorry (apology)", c:0, conf:"sorry"},
+ {r:"Wakarimasen", k:"わかりません", e:"I don't understand", c:0},
+ {r:"Eigo ga hanasemasu ka?", k:"えいご が はなせます か", say:"英語が話せますか", e:"Do you speak English?", c:0},
+ {r:"Watashi", k:"わたし", say:"私", e:"I / me", c:0},
+ {r:"Watashi no namae wa ___ desu", k:"わたし の なまえ は ＿ です", say:"私の名前はトニーです", e:"My name is ___", c:0, n:"Audio example: “…wa Tonī desu”"},
+ {r:"Kore", k:"これ", e:"This", c:0, conf:"this"},
+ {r:"Kore kudasai", k:"これ ください", e:"This one, please", c:0, n:"Point at the item", conf:"this"},
+ {r:"Nani?", k:"なに", say:"何？", e:"What?", c:0, conf:"what"},
+ {r:"Nan desu ka?", k:"なん です か", say:"何ですか", e:"What is it?", c:0, conf:"what"},
+ {r:"Doko desu ka?", k:"どこ です か", e:"Where is it?", c:0, conf:"where"},
+ {r:"___ wa doko desu ka?", k:"＿ は どこ です か", say:"トイレはどこですか", e:"Where is ___?", c:0, n:"Audio example: “Toire wa doko desu ka?”", conf:"where"},
+ {r:"Ikura desu ka?", k:"いくら です か", e:"How much is this?", c:0},
+ // Getting around
+ {r:"Eki", k:"えき", say:"駅", e:"Train station", c:1},
+ {r:"Chikatetsu", k:"ちかてつ", say:"地下鉄", e:"Subway", c:1},
+ {r:"Kippu", k:"きっぷ", say:"切符", e:"Ticket", c:1},
+ {r:"Hōmu", k:"ホーム", e:"Platform", c:1},
+ {r:"Takushī", k:"タクシー", e:"Taxi", c:1},
+ {r:"Kūkō", k:"くうこう", say:"空港", e:"Airport", c:1},
+ {r:"Toire", k:"トイレ", e:"Toilet / restroom", c:1},
+ {r:"___ made onegaishimasu", k:"＿ まで おねがいします", say:"東京駅までお願いします", e:"I'd like to go to ___, please", c:1, n:"Audio example: “Tōkyō-eki made…” (to Tokyo Station)"},
+ // Food & shopping
+ {r:"Konbini", k:"コンビニ", e:"Convenience store", c:2},
+ {r:"Irasshaimase!", k:"いらっしゃいませ", e:"Welcome! (staff greet you with this)", c:2, n:"No reply needed — a nod is fine"},
+ {r:"Kitsuen seki", k:"きつえん せき", say:"喫煙席", e:"Smoking area / seats", c:2, n:"Non-smoking: kin'en seki"},
+ {r:"Omakase de", k:"おまかせ で", say:"お任せで", e:"Your recommendation (chef's choice)", c:2, n:"Add “onegaishimasu” to be polite"},
+ {r:"Gohan", k:"ごはん", say:"ご飯", e:"Rice (also: meal)", c:2},
+ {r:"Toriniku", k:"とりにく", say:"鶏肉", e:"Chicken", c:2},
+ {r:"Gyūniku", k:"ぎゅうにく", say:"牛肉", e:"Beef", c:2},
+ {r:"Butaniku", k:"ぶたにく", say:"豚肉", e:"Pork", c:2},
+ {r:"Kaisen", k:"かいせん", say:"海鮮", e:"Seafood", c:2},
+ {r:"Nama", k:"なま", say:"生", e:"Raw", c:2, n:"“Nama bīru” = draft beer"},
+ {r:"Karai", k:"からい", say:"辛い", e:"Spicy", c:2},
+ {r:"Kanpai!", k:"かんぱい", say:"乾杯！", e:"Cheers!", c:2},
+ {r:"Kakuteru", k:"カクテル", e:"Cocktail", c:2},
+ {r:"Kōhī", k:"コーヒー", e:"Coffee", c:2},
+ {r:"Ocha", k:"おちゃ", say:"お茶", e:"Tea (green tea)", c:2},
+ {r:"Gyūnyū", k:"ぎゅうにゅう", say:"牛乳", e:"Milk", c:2},
+ {r:"Nanmei-sama desu ka?", k:"なんめいさま です か", say:"何名様ですか", e:"How many people? (you'll hear this)", c:2},
+ {r:"Hitori desu", k:"ひとり です", e:"One person", c:2, conf:"ppl"},
+ {r:"Futari desu", k:"ふたり です", e:"Two people", c:2, conf:"ppl"},
+ {r:"San-nin desu", k:"さんにん です", say:"三人です", e:"Three people", c:2, conf:"ppl"},
+ {r:"Yo-nin desu", k:"よにん です", e:"Four people", c:2, conf:"ppl"},
+ {r:"Go-nin desu", k:"ごにん です", say:"五人です", e:"Five people", c:2, conf:"ppl"},
+ {r:"Mizu", k:"みず", say:"水", e:"Water", c:2, conf:"water"},
+ {r:"Omizu onegaishimasu", k:"おみず おねがいします", say:"お水お願いします", e:"Can I have some water, please?", c:2, conf:"water"},
+ {r:"Bin bīru", k:"びん ビール", say:"瓶ビール", e:"Bottled beer", c:2},
+ {r:"Itadakimasu", k:"いただきます", e:"Let's dig in! (before eating)", c:2},
+ {r:"Gochisōsama deshita", k:"ごちそうさま でした", say:"ご馳走様でした", e:"Thank you for the meal (after eating)", c:2},
+ {r:"Oishikatta desu", k:"おいしかった です", say:"美味しかったです", e:"It was so delicious", c:2},
+ {r:"Okaikei onegaishimasu", k:"おかいけい おねがいします", say:"お会計お願いします", e:"The bill, please", c:2},
+ {r:"Oshiharai hōhō wa dō nasaimasu ka?", k:"おしはらい ほうほう は どう なさいます か", say:"お支払い方法はどうなさいますか", e:"How would you like to pay? (you'll hear this)", c:2},
+ {r:"Kādo de", k:"カード で", e:"By card", c:2, conf:"pay"},
+ {r:"Suica de", k:"スイカ で", e:"By Suica (IC transit card)", c:2, conf:"pay"},
+ {r:"Reshīto", k:"レシート", e:"Receipt", c:2},
+ {r:"Fukuro kudasai", k:"ふくろ ください", say:"袋ください", e:"A bag, please", c:2},
+ {r:"Ohashi kudasai", k:"おはし ください", say:"お箸ください", e:"Chopsticks, please", c:2},
+ {r:"Atatamete kudasai", k:"あたためて ください", say:"温めてください", e:"Can you heat this up, please?", c:2, n:"Handy at convenience stores"},
+ {r:"Ijō desu", k:"いじょう です", say:"以上です", e:"That's all", c:2},
+ // Numbers
+ {r:"Zero", k:"ゼロ", e:"Zero (0)", c:3},
+ {r:"Ichi", k:"いち", e:"One (1)", c:3},
+ {r:"Ni", k:"に", say:"二", e:"Two (2)", c:3},
+ {r:"San", k:"さん", say:"三", e:"Three (3)", c:3},
+ {r:"Yon", k:"よん", e:"Four (4)", c:3},
+ {r:"Go", k:"ご", say:"五", e:"Five (5)", c:3},
+ {r:"Roku", k:"ろく", e:"Six (6)", c:3},
+ {r:"Nana", k:"なな", e:"Seven (7)", c:3},
+ {r:"Hachi", k:"はち", e:"Eight (8)", c:3},
+ {r:"Kyū", k:"きゅう", e:"Nine (9)", c:3},
+ {r:"Jū", k:"じゅう", e:"Ten (10)", c:3},
+ {r:"Jū-ichi", k:"じゅういち", e:"Eleven (11)", c:3},
+ {r:"Jū-ni", k:"じゅうに", e:"Twelve (12)", c:3},
+ {r:"Jū-san", k:"じゅうさん", e:"Thirteen (13)", c:3},
+ {r:"Jū-yon", k:"じゅうよん", e:"Fourteen (14)", c:3},
+ {r:"Ni-jū", k:"にじゅう", e:"Twenty (20)", c:3},
+ {r:"San-jū", k:"さんじゅう", e:"Thirty (30)", c:3},
+ {r:"Yon-jū", k:"よんじゅう", e:"Forty (40)", c:3},
+ {r:"Hyaku", k:"ひゃく", e:"One hundred (100)", c:3},
+ {r:"Ni-hyaku", k:"にひゃく", say:"二百", e:"Two hundred (200)", c:3},
+ {r:"Sen", k:"せん", e:"One thousand (1,000)", c:3},
+ {r:"Go-sen", k:"ごせん", say:"五千", e:"Five thousand (5,000)", c:3},
+];
+const P = RAW.map((p,i)=>Object.assign({id:i, cat:CATS[p.c]}, p));
+
+/* ---------- HELPERS ---------- */
+const $ = id => document.getElementById(id);
+const SPK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const store = {
+  get(k,d){try{const v=localStorage.getItem('jpgo:'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem('jpgo:'+k,JSON.stringify(v))}catch(e){}}
+};
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function itemsFor(cat){return cat==='All'?P:P.filter(p=>p.cat===cat)}
+let toastT;
+function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600)}
+function chips(el,cur,onPick){
+  el.innerHTML=['All',...CATS].map(c=>`<button class="chip${c===cur?' on':''}" data-c="${c}">${c}</button>`).join('');
+  el.onclick=e=>{const b=e.target.closest('.chip');if(b)onPick(b.dataset.c)};
+}
+function fmtDur(ms){const s=Math.max(0,Math.round(ms/1000));if(s<60)return s+'s';const m=Math.round(s/60);if(m<60)return m+' min';const h=Math.round(m/60);if(h<24)return h+' h';return Math.round(h/24)+' d'}
+
+/* ---------- SPEECH ---------- */
+let jaVoice=null, voicesLoaded=false, rate=store.get('rate',0.85);
+const hasTTS='speechSynthesis' in window;
+function pickVoice(){
+  if(!hasTTS)return;
+  const vs=speechSynthesis.getVoices();
+  if(vs.length)voicesLoaded=true;
+  const ja=vs.filter(v=>/^ja/i.test(v.lang));
+  jaVoice=ja.find(v=>/kyoko|o-ren|otoya|google/i.test(v.name)&&v.localService)||ja.find(v=>v.localService)||ja[0]||null;
+  updateVoiceUI();
+}
+function updateVoiceUI(){
+  const b=$('voiceBadge');
+  if(!hasTTS){b.hidden=false;b.className='hbtn warn';b.textContent='No audio';$('voiceInfo').textContent='This browser does not support speech. Try Safari (iPhone) or Chrome (Android).';return}
+  if(voicesLoaded&&!jaVoice){b.hidden=false;b.className='hbtn warn';b.textContent='No JP voice';$('voiceInfo').textContent='No Japanese voice found on this device. Audio may sound wrong or be silent — see the steps below to install one.';}
+  else{b.hidden=true;$('voiceInfo').textContent=jaVoice?`Using “${jaVoice.name}”${jaVoice.localService?' (on-device, works offline)':' (may need internet)'}.`:'Using the default Japanese voice.';}
+}
+if(hasTTS){pickVoice();speechSynthesis.onvoiceschanged=pickVoice;setTimeout(()=>{voicesLoaded=true;pickVoice()},1500)}
+let lastUtt=null, speakT=null; // keep a reference: Chrome drops utterances that get garbage-collected
+function speak(p,fallback){
+  if(!hasTTS){toast('Audio is not supported in this browser');return}
+  if(!jaVoice)pickVoice();
+  const text=typeof p==='string'?p:(p.say||p.k.replace(/[\s＿_]/g,''));
+  const go=()=>{
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='ja-JP'; u.rate=rate;
+    const v=fallback||jaVoice; if(v)u.voice=v;
+    u.onerror=e=>{
+      if(e.error==='interrupted'||e.error==='canceled')return;
+      // chosen voice failed (e.g. an online voice while offline) -> try another Japanese voice
+      const alt=speechSynthesis.getVoices().filter(x=>/^ja/i.test(x.lang)&&x!==v);
+      if(alt.length&&!fallback)speak(p,alt.find(x=>x.localService)||alt[0]);
+      else toast('Audio failed — check that a Japanese voice is installed (see Settings)');
+    };
+    lastUtt=u;
+    speechSynthesis.resume(); // Chrome can get stuck in a paused state
+    speechSynthesis.speak(u);
+  };
+  clearTimeout(speakT);
+  if(speechSynthesis.speaking||speechSynthesis.pending){
+    speechSynthesis.cancel();
+    speakT=setTimeout(go,80); // Chrome silently drops speak() called right after cancel()
+  }else go();
+}
+
+/* ---------- TABS ---------- */
+let view=store.get('view','learn');
+function show(v){
+  view=v;store.set('view',v);
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
+  ['learn','flash','talk','quiz'].forEach(x=>$('v-'+x).hidden=x!==v);
+  if(v==='flash')renderFlash();
+  window.scrollTo(0,0);
+}
+document.querySelector('nav.tabs').onclick=e=>{const t=e.target.closest('.tab');if(t)show(t.dataset.v)};
+
+/* ---------- LEARN ---------- */
+let lCat='All';
+function rowHTML(p){
+  return `<button class="row" data-id="${p.id}">
+    <div class="en">${p.e}</div>
+    <div><div class="ro">${p.r}</div><div class="kn jp">${p.k}</div>${p.n?`<div class="nt">${p.n}</div>`:''}</div>
+    <span class="spk">${SPK}</span></button>`;
+}
+function renderLearn(){
+  chips($('learnChips'),lCat,c=>{lCat=c;renderLearn()});
+  const q=$('search').value.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const match=p=>!q||(p.e+' '+p.r+' '+p.k).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q);
+  let html='';
+  CATS.forEach(c=>{
+    if(lCat!=='All'&&lCat!==c)return;
+    const items=P.filter(p=>p.cat===c&&match(p));
+    if(!items.length)return;
+    html+=`<h2 class="cat">${c}</h2><div class="list">${items.map(rowHTML).join('')}</div>`;
+  });
+  $('learnList').innerHTML=html||'<p class="legend" style="text-align:center;margin-top:30px">No matches.</p>';
+}
+$('search').oninput=renderLearn;
+document.addEventListener('click',e=>{
+  const r=e.target.closest('.row[data-id]');
+  if(r)speak(P[+r.dataset.id]);
+});
+
+/* ---------- FLASHCARDS (spaced repetition) ---------- */
+const STEPS=[10*60e3, 60*60e3, 6*3600e3, 24*3600e3, 3*86400e3, 7*86400e3, 21*86400e3];
+let srs=store.get('srs2',{});      // id -> {due, step}
+let fCat=store.get('fcat','All');
+let cur=null, lastId=null, ahead=false, emptyTimer=null;
+
+function pickCard(){
+  const now=Date.now(), items=itemsFor(fCat);
+  const seen=items.filter(p=>srs[p.r]).sort((a,b)=>srs[a.r].due-srs[b.r].due);
+  const due=seen.filter(p=>srs[p.r].due<=now);
+  const fresh=items.filter(p=>!srs[p.r]);
+  let cands=due.slice(); if(fresh.length)cands.push(fresh[0]);
+  if(!cands.length&&ahead)cands=seen.slice(0,2);
+  if(!cands.length)return null;
+  return cands.find(p=>p.id!==lastId)||cands[0];
+}
+function updateStats(){
+  const now=Date.now(), items=itemsFor(fCat);
+  $('stDue').textContent=items.filter(p=>srs[p.r]&&srs[p.r].due<=now).length;
+  $('stNew').textContent=items.filter(p=>!srs[p.r]).length;
+  $('stLearn').textContent=items.filter(p=>srs[p.r]&&srs[p.r].due>now).length;
+}
+function renderFlash(){
+  chips($('flashChips'),fCat,c=>{fCat=c;store.set('fcat',c);ahead=false;lastId=null;renderFlash()});
+  clearInterval(emptyTimer);
+  updateStats();
+  cur=pickCard();
+  const card=$('fcard');
+  if(!cur){
+    $('flashArea').hidden=true;$('flashEmpty').hidden=false;
+    const tick=()=>{
+      const items=itemsFor(fCat).filter(p=>srs[p.r]);
+      const next=Math.min(...items.map(p=>srs[p.r].due));
+      const left=next-Date.now();
+      if(left<=0){renderFlash();return}
+      $('emptyMsg').textContent=`Nothing is due in “${fCat}”. Next card in ${fmtDur(left)}.`;
+      updateStats();
+    };
+    tick();emptyTimer=setInterval(tick,1000);
+    return;
+  }
+  $('flashArea').hidden=false;$('flashEmpty').hidden=true;
+  card.classList.add('noanim');card.classList.remove('flipped');void card.offsetWidth;card.classList.remove('noanim');
+  $('fRo').textContent=cur.r;$('fRo2').textContent=cur.r;$('fEn').textContent=cur.e;$('fKn').textContent=cur.k;
+  $('fNt').textContent=cur.n||'';$('fNt').hidden=!cur.n;
+  $('rateRow').hidden=true;$('flipHint').hidden=false;
+  const s=srs[cur.r], step=s?Math.min(s.step,STEPS.length-1):0;
+  $('goodLbl').textContent='Later · '+fmtDur(STEPS[step]);
+}
+$('fSpk1').innerHTML=SPK;$('fSpk2').innerHTML=SPK;
+$('fSpk1').onclick=$('fSpk2').onclick=e=>{e.stopPropagation();if(cur)speak(cur)};
+$('fcard').onclick=()=>{
+  const c=$('fcard');c.classList.toggle('flipped');
+  if(c.classList.contains('flipped')){$('rateRow').hidden=false;$('flipHint').hidden=true}
+};
+$('rateRow').onclick=e=>{
+  const b=e.target.closest('.rbtn');if(!b||!cur)return;
+  const now=Date.now(), s=srs[cur.r]||{step:0};
+  if(b.dataset.r==='again'){s.step=0;s.due=now+50e3}
+  else if(b.dataset.r==='hard'){s.due=now+4*60e3}
+  else{s.due=now+STEPS[Math.min(s.step,STEPS.length-1)];s.step=Math.min(s.step+1,STEPS.length)}
+  srs[cur.r]=s;store.set('srs2',srs);lastId=cur.id;
+  renderFlash();
+};
+$('aheadBtn').onclick=()=>{ahead=true;renderFlash()};
+$('resetDeck').onclick=()=>{
+  const b=$('resetDeck');
+  if(b.dataset.armed){itemsFor(fCat).forEach(p=>delete srs[p.r]);store.set('srs2',srs);b.textContent='Reset progress for this deck';delete b.dataset.armed;ahead=false;renderFlash();toast('Deck reset')}
+  else{b.dataset.armed=1;b.textContent='Tap again to confirm reset';setTimeout(()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent='Reset progress for this deck'}},3000)}
+};
+
+/* ---------- TALK (conversations) ----------
+ s = what the other person says (optional), task = what you need to say,
+ a = accepted answers (normalized; * = any word, e.g. your name), m/mk = model answer romaji/kana */
+const THANKS=['arigato gozaimasu','arigato','arigato gozaimashita','domo arigato gozaimasu','domo arigato','domo'];
+const PAYQ={r:'Oshiharai hōhō wa dō nasaimasu ka?',k:'おしはらい ほうほう は どう なさいます か',say:'お支払い方法はどうなさいますか',e:'How would you like to pay?'};
+const SCEN=[
+ {t:'At the konbini',d:'Buy a rice ball, heat it up, pay with Suica',turns:[
+  {s:{r:'Irasshaimase!',k:'いらっしゃいませ',e:'Welcome!'},task:'Put a rice ball on the counter and say “this one, please.”',a:['kore kudasai','kore onegaishimasu'],m:'Kore kudasai',mk:'これください'},
+  {task:'Ask them to heat it up.',a:['atatamete kudasai','atatamete onegaishimasu'],m:'Atatamete kudasai',mk:'温めてください'},
+  {s:Object.assign({},PAYQ,{r:'Hai. '+PAYQ.r,k:'はい。'+PAYQ.k,say:'はい。'+PAYQ.say,e:'Sure. How would you like to pay?'}),task:'Pay with your Suica card.',a:['suica de','suika de','suica de onegaishimasu','suika de onegaishimasu','suica','suika'],m:'Suica de',mk:'スイカで'},
+  {task:'Ask for a bag.',a:['fukuro kudasai','fukuro onegaishimasu'],m:'Fukuro kudasai',mk:'袋ください'},
+  {s:{r:'Arigatō gozaimashita!',k:'ありがとう ございました',e:'Thank you very much!'},task:'Thank them.',a:THANKS,m:'Arigatō gozaimasu',mk:'ありがとうございます'},
+ ]},
+ {t:'Arriving at a restaurant',d:'Table for two, seating, water',turns:[
+  {s:{r:'Irasshaimase! Nanmei-sama desu ka?',k:'いらっしゃいませ！なんめいさま です か',say:'いらっしゃいませ！何名様ですか',e:'Welcome! How many people?'},task:'There are two of you.',a:['futari desu','futari'],m:'Futari desu',mk:'二人です'},
+  {s:{r:'Kitsuen seki desu ka?',k:'きつえん せき です か',say:'喫煙席ですか',e:'Smoking seats?'},task:'Politely say “no, thank you.”',a:['kekko desu','iie','iie kekko desu'],m:'Kekkō desu',mk:'結構です'},
+  {task:'Ask if they speak English.',a:['eigo ga hanasemasu ka','eigo hanasemasu ka','eigo wa hanasemasu ka','eigo ga hanasemasu','eigo hanasemasu'],m:'Eigo ga hanasemasu ka?',mk:'英語が話せますか'},
+  {s:{r:'Iie, sumimasen…',k:'いいえ、すみません',e:'No, sorry…'},task:'No problem! Ask for some water.',a:['omizu onegaishimasu','mizu onegaishimasu','omizu kudasai','mizu kudasai'],m:'Omizu onegaishimasu',mk:'お水お願いします'},
+ ]},
+ {t:'Ordering food',d:'Call the waiter, chef’s choice, beer, cheers',turns:[
+  {task:'Get the waiter’s attention.',a:['sumimasen'],m:'Sumimasen',mk:'すみません'},
+  {s:{r:'Hai!',k:'はい',e:'Yes!'},task:'Ask for the chef’s recommendation.',a:['omakase de','omakase de onegaishimasu','omakase','omakase onegaishimasu','omakase de kudasai','omakase kudasai'],m:'Omakase de onegaishimasu',mk:'お任せでお願いします'},
+  {s:{r:'Kaisen to gyūniku, dochira ga ii desu ka?',k:'かいせん と ぎゅうにく、どちら が いい です か',say:'海鮮と牛肉、どちらがいいですか',e:'Seafood or beef — which would you like?'},task:'Choose the beef.',a:['gyuniku','gyuniku de','gyuniku desu','gyuniku kudasai','gyuniku onegaishimasu','gyuniku de onegaishimasu'],m:'Gyūniku de onegaishimasu',mk:'牛肉でお願いします'},
+  {task:'Also order a bottled beer.',a:['bin biru kudasai','bin biru onegaishimasu','bin biru','bin biru de','bin biru hitotsu kudasai'],m:'Bin bīru kudasai',mk:'瓶ビールください'},
+  {s:{r:'Ijō de yoroshii desu ka?',k:'いじょう で よろしい です か',say:'以上でよろしいですか',e:'Will that be all?'},task:'Say that’s all.',a:['ijo desu','hai ijo desu','hai'],m:'Ijō desu',mk:'以上です'},
+  {s:{r:'Bin bīru desu!',k:'びん ビール です',say:'瓶ビールです',e:'Here’s your bottled beer!'},task:'Raise your glass!',a:['kanpai'],m:'Kanpai!',mk:'乾杯！'},
+  {task:'The food arrives. Say what you say before eating.',a:['itadakimasu'],m:'Itadakimasu',mk:'いただきます'},
+ ]},
+ {t:'Getting the check',d:'Compliment the food, pay by card, receipt',turns:[
+  {s:{r:'Ikaga deshita ka?',k:'いかが でした か',say:'いかがでしたか',e:'How was everything?'},task:'Tell them it was delicious.',a:['oishikatta desu','oishikatta','totemo oishikatta desu','hai oishikatta desu'],m:'Oishikatta desu',mk:'美味しかったです'},
+  {task:'Thank them for the meal.',a:['gochisosama deshita','gochisosama','gochisosama desu'],m:'Gochisōsama deshita',mk:'ご馳走様でした'},
+  {task:'Ask for the bill.',a:['okaikei onegaishimasu','okaikei kudasai','kaikei onegaishimasu','okaikei'],m:'Okaikei onegaishimasu',mk:'お会計お願いします'},
+  {s:PAYQ,task:'Pay by card.',a:['kado de','kado de onegaishimasu','kado'],m:'Kādo de',mk:'カードで'},
+  {s:{r:'Hai, dōzo.',k:'はい、どうぞ',e:'Here you go.'},task:'Ask for a receipt.',a:['reshito kudasai','reshito onegaishimasu','reshito'],m:'Reshīto kudasai',mk:'レシートください'},
+ ]},
+ {t:'Taking a taxi',d:'Destination, price, paying',turns:[
+  {s:{r:'Dochira made?',k:'どちら まで',say:'どちらまで？',e:'Where to?'},task:'Ask to go to the airport.',a:['kuko made onegaishimasu','kuko made','kuko made kudasai','kuko'],m:'Kūkō made onegaishimasu',mk:'空港までお願いします'},
+  {s:{r:'Narita Kūkō desu ne?',k:'なりた くうこう です ね',say:'成田空港ですね',e:'Narita Airport, right?'},task:'Say yes.',a:['hai','hai onegaishimasu','hai so desu'],m:'Hai',mk:'はい'},
+  {task:'You’ve arrived. Ask how much it is.',a:['ikura desu ka','ikura','ikura desu'],m:'Ikura desu ka?',mk:'いくらですか'},
+  {s:{r:'Go-sen en desu.',k:'ごせん えん です',say:'五千円です',e:'It’s 5,000 yen.'},task:'Pay by card.',a:['kado de','kado de onegaishimasu','kado'],m:'Kādo de',mk:'カードで'},
+  {s:{r:'Arigatō gozaimashita!',k:'ありがとう ございました',e:'Thank you very much!'},task:'Thank the driver.',a:THANKS,m:'Arigatō gozaimasu',mk:'ありがとうございます'},
+ ]},
+ {t:'At the train station',d:'Ask for directions, ask to repeat',turns:[
+  {task:'Politely stop someone to ask a question.',a:['sumimasen'],m:'Sumimasen',mk:'すみません'},
+  {s:{r:'Hai?',k:'はい？',e:'Yes?'},task:'Ask where the subway is.',a:['chikatetsu wa doko desu ka','chikatetsu doko desu ka','chikatetsu wa doko','chikatetsu doko'],m:'Chikatetsu wa doko desu ka?',mk:'地下鉄はどこですか'},
+  {s:{r:'Asoko desu.',k:'あそこ です',e:'It’s over there.'},task:'You didn’t catch that. Ask them to say it one more time.',a:['mo ichido onegaishimasu','mo ichido','mo ichido kudasai','sumimasen mo ichido onegaishimasu'],m:'Mō ichido onegaishimasu',mk:'もう一度お願いします'},
+  {s:{r:'A-so-ko de-su.',k:'あ・そ・こ です',say:'あ、そ、こ、です。',e:'It’s o-ver there.'},task:'Now ask where the toilets are.',a:['toire wa doko desu ka','toire doko desu ka','toire wa doko','toire doko'],m:'Toire wa doko desu ka?',mk:'トイレはどこですか'},
+  {s:{r:'Hōmu no mae desu.',k:'ホーム の まえ です',say:'ホームの前です',e:'In front of the platform.'},task:'Thank them.',a:THANKS,m:'Arigatō gozaimasu',mk:'ありがとうございます'},
+ ]},
+ {t:'Meeting someone',d:'Greetings and introducing yourself',turns:[
+  {s:{r:"Kon'nichiwa!",k:'こんにちは',e:'Hello!'},task:'Say hello back.',a:['konnichiwa','konnichiha'],m:"Kon'nichiwa",mk:'こんにちは'},
+  {s:{r:'Genki desu ka?',k:'げんき です か',say:'元気ですか',e:'How are you?'},task:'Say you’re fine.',a:['genki desu','hai genki desu','genki'],m:'Genki desu',mk:'元気です'},
+  {task:'Introduce yourself (use your own name).',a:['watashi no namae wa * desu','watashi wa * desu','namae wa * desu'],m:'Watashi no namae wa Tonī desu',mk:'私の名前はトニーです'},
+  {s:{r:'Yoroshiku!',k:'よろしく',e:'Nice to meet you!'},task:'Say “nice to meet you” too.',a:['yoroshiku','yoroshiku onegaishimasu','dozo yoroshiku','kochira koso yoroshiku'],m:'Yoroshiku',mk:'よろしく'},
+  {s:{r:'Ja ne!',k:'じゃ ね',e:'Bye!'},task:'Say bye.',a:['ja ne','sayonara','mata ne','bai bai'],m:'Ja ne!',mk:'じゃね'},
+ ]},
+];
+// forgiving romaji comparison: ignores case, accents, spaces, punctuation, long vowels (ou/oo/ō), nn, m/n before p/b
+function normR(s){
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z*]/g,'').replace(/jy/g,'j').replace(/ou/g,'o').replace(/([aiueo])\1+/g,'$1')
+    .replace(/n+/g,'n').replace(/m(?=[pb])/g,'n');
+}
+function matches(input,answers){
+  const n=normR(input); if(!n)return false;
+  return answers.some(a=>new RegExp('^'+normR(a).split('*').join('[a-z]+')+'$').test(n));
+}
+let tDone=store.get('talkDone',{}), tScen=0, tStep=0, tFails=0, tBusy=false;
+function renderTalkList(){
+  $('talkList').hidden=false;$('talkRun').hidden=true;
+  $('scenList').innerHTML=SCEN.map((s,i)=>`<button class="scen${tDone[i]?' done':''}" data-i="${i}"><span class="num">${tDone[i]?'✓':i+1}</span><div><b>${s.t}</b><span>${s.d} · ${s.turns.length} lines</span></div></button>`).join('');
+}
+$('scenList').onclick=e=>{const b=e.target.closest('.scen');if(b)startScen(+b.dataset.i)};
+function bubble(cls,html){const d=document.createElement('div');d.className='bub '+cls;d.innerHTML=html;$('chat').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'nearest'});return d}
+function staffSays(s){
+  const b=bubble('staff',`<div style="flex:1"><div class="who">Them</div><div class="ro">${s.r}</div><div class="kn jp">${s.k}</div><div class="en">${s.e}</div></div><button class="spk" aria-label="Play">${SPK}</button>`);
+  b.querySelector('.spk').onclick=()=>speak(s);
+  speak(s);
+}
+function startScen(i){
+  tScen=i;tStep=0;$('chat').innerHTML='';
+  $('talkList').hidden=true;$('talkRun').hidden=false;$('talkDone').hidden=true;$('taskBox').hidden=false;
+  $('talkTitle').textContent=SCEN[i].t;
+  window.scrollTo(0,0);nextTurn();
+}
+function nextTurn(){
+  const sc=SCEN[tScen];tBusy=false;
+  if(tStep>=sc.turns.length){
+    tDone[tScen]=1;store.set('talkDone',tDone);
+    $('taskBox').hidden=true;$('talkDone').hidden=false;
+    $('talkDoneMsg').textContent=`You finished “${sc.t}”.`;
+    $('talkNext').hidden=tScen>=SCEN.length-1;
+    $('talkDone').scrollIntoView({behavior:'smooth',block:'nearest'});
+    return;
+  }
+  const t=sc.turns[tStep];
+  $('talkStep').textContent=`${tStep+1}/${sc.turns.length}`;
+  if(t.s)staffSays(t.s);
+  $('taskTxt').textContent=t.task;
+  $('answer').value='';$('tFb').hidden=true;tFails=0;
+  $('taskBox').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function answerAndContinue(text,t,revealed){
+  tBusy=true;
+  bubble('me'+(revealed?' revealed':''),`<div class="who">You${revealed?' (shown)':''}</div><div style="font-weight:650">${text}</div><div class="kn jp">${t.mk}</div>`);
+  $('answer').value='';$('tFb').hidden=true;
+  const say={k:t.mk};speak(say);
+  tStep++;
+  const nxt=SCEN[tScen].turns[tStep];
+  setTimeout(nextTurn, nxt&&nxt.s?Math.min(3500,900+t.mk.length*140):500);
+}
+function checkAnswer(){
+  if(tBusy)return;
+  const t=SCEN[tScen].turns[tStep], val=$('answer').value.trim();
+  if(!val){$('answer').focus();return}
+  if(matches(val,t.a)){answerAndContinue(val.replace(/</g,'&lt;'),t,false);return}
+  tFails++;
+  const a=$('answer');a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake');
+  $('tFb').className='tfb bad';$('tFb').hidden=false;
+  $('tFb').textContent=tFails>=2?'Not quite. Try a hint, or tap “Show answer”.':'Not quite — try again.';
+}
+$('tCheck').onclick=checkAnswer;
+$('answer').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();checkAnswer()}};
+$('tHint').onclick=()=>{
+  const t=SCEN[tScen].turns[tStep];
+  const masked=t.m.split(' ').map(w=>w[0]+w.slice(1).replace(/[A-Za-zāīūēō]/g,'·')).join(' ');
+  $('tFb').className='tfb hint';$('tFb').hidden=false;$('tFb').textContent='Hint: '+masked;
+};
+$('tReveal').onclick=()=>{if(tBusy)return;const t=SCEN[tScen].turns[tStep];answerAndContinue(t.m,t,true)};
+$('talkBack').onclick=()=>{speechSynthesis&&speechSynthesis.cancel();renderTalkList()};
+$('talkRestart').onclick=()=>startScen(tScen);
+$('talkNext').onclick=()=>startScen(tScen+1);
+
+/* ---------- QUIZ ---------- */
+let qCat='All', quiz=[], qi=0, qRight=0, misses=[];
+function buildQuiz(){
+  const pool=shuffle(itemsFor(qCat)).slice(0,10);
+  return pool.map(p=>{
+    const dir=Math.random()<.5?'r2e':'e2r';
+    const key=o=>dir==='r2e'?o.e:o.r;
+    const ok=o=>o.id!==p.id&&!(p.conf&&o.conf===p.conf);
+    const same=shuffle(P.filter(o=>ok(o)&&o.c===p.c)), other=shuffle(P.filter(o=>ok(o)&&o.c!==p.c));
+    const picks=[],seenTxt=new Set([key(p)]);
+    for(const o of same.concat(other)){if(picks.length>=3)break;if(!seenTxt.has(key(o))){seenTxt.add(key(o));picks.push(o)}}
+    return {p,dir,opts:shuffle([p,...picks])};
+  });
+}
+function startQuiz(){quiz=buildQuiz();qi=0;qRight=0;misses=[];$('quizStart').hidden=true;$('quizDone').hidden=true;$('quizRun').hidden=false;renderQ()}
+function renderQ(){
+  const q=quiz[qi];
+  $('qBar').style.width=(qi/quiz.length*100)+'%';
+  $('qNum').textContent=`Question ${qi+1} of ${quiz.length}`;
+  $('qScore').textContent=`${qRight} correct`;
+  if(q.dir==='r2e'){
+    $('qAsk').textContent='What does this mean?';
+    $('qPrompt').textContent=q.p.r;$('qKana').textContent=q.p.k;$('qSpk').hidden=false;
+  }else{
+    $('qAsk').textContent='How do you say this in Japanese?';
+    $('qPrompt').textContent=q.p.e;$('qKana').textContent='';$('qSpk').hidden=true;
+  }
+  $('qOpts').innerHTML=q.opts.map(o=>`<button class="opt" data-id="${o.id}">${q.dir==='r2e'?o.e:`${o.r}<span class="kn jp">${o.k}</span>`}</button>`).join('');
+  $('qFb').hidden=true;$('qNext').hidden=true;
+}
+$('qSpk').innerHTML=SPK;
+$('qSpk').onclick=()=>speak(quiz[qi].p);
+$('qOpts').onclick=e=>{
+  const b=e.target.closest('.opt');if(!b||b.disabled)return;
+  const q=quiz[qi], right=+b.dataset.id===q.p.id;
+  document.querySelectorAll('#qOpts .opt').forEach(x=>{x.disabled=true;if(+x.dataset.id===q.p.id)x.classList.add('right')});
+  if(right){qRight++;$('qFb').className='feedback good';$('qFb').textContent='Correct! '+q.p.r+' = '+q.p.e}
+  else{b.classList.add('wrong');misses.push(q.p);$('qFb').className='feedback bad';$('qFb').textContent='Not quite — '+q.p.r+' = '+q.p.e}
+  $('qFb').hidden=false;$('qNext').hidden=false;$('qNext').textContent=qi===quiz.length-1?'See results':'Next';
+  $('qScore').textContent=`${qRight} correct`;
+  speak(q.p);
+};
+$('qNext').onclick=()=>{qi++;if(qi<quiz.length)renderQ();else finishQuiz()};
+function finishQuiz(){
+  $('quizRun').hidden=true;$('quizDone').hidden=false;
+  $('qFinal').textContent=`${qRight}/${quiz.length}`;
+  const pct=qRight/quiz.length;
+  $('qVerdict').textContent=pct===1?'Kanpeki! (Perfect!)':pct>=.7?'Sugoi! Great job.':pct>=.4?'Getting there — keep practicing.':'Review the Learn tab and try again.';
+  $('qMiss').innerHTML=misses.length?`<h2 class="cat">Review these</h2><div class="list">${misses.map(rowHTML).join('')}</div>`:'';
+}
+$('quizGo').onclick=startQuiz;
+$('qAgain').onclick=()=>{$('quizDone').hidden=true;$('quizStart').hidden=false;renderQuizStart()};
+function renderQuizStart(){chips($('quizChips'),qCat,c=>{qCat=c;renderQuizStart()})}
+
+/* ---------- SETTINGS ---------- */
+function renderSpeed(){document.querySelectorAll('#speedSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.rate===rate))}
+$('settingsBtn').onclick=$('voiceBadge').onclick=()=>{renderSpeed();updateVoiceUI();$('settings').hidden=false};
+$('closeSettings').onclick=()=>$('settings').hidden=true;
+$('settings').onclick=e=>{if(e.target.id==='settings')$('settings').hidden=true};
+$('speedSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;rate=+b.dataset.rate;store.set('rate',rate);renderSpeed();speak('こんにちは')};
+$('testVoice').onclick=()=>speak('こんにちは');
+$('resetAll').onclick=()=>{
+  const b=$('resetAll');
+  if(b.dataset.armed){srs={};store.set('srs2',srs);delete b.dataset.armed;b.textContent='Reset all flashcard progress';toast('All progress reset');if(view==='flash')renderFlash()}
+  else{b.dataset.armed=1;b.textContent='Tap again to confirm';setTimeout(()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent='Reset all flashcard progress'}},3000)}
+};
+
+/* ---------- INIT ---------- */
+renderLearn();renderQuizStart();renderTalkList();show(view);
+// Offline support when hosted as an installable app (skipped when opened as a local file)
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+</script>
+</body>
+</html>
